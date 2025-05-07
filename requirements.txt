@@ -1,0 +1,6 @@
+dotenv==0.9.9
+pyaes==1.6.1
+pyasn1==0.6.1
+python-dotenv==1.1.0
+rsa==4.9.1
+Telethon==1.40.0
