@@ -21,7 +21,7 @@ Um script Python para baixar facilmente todos os arquivos de mídia de chats, gr
 1. Clone este repositório ou baixe o script
 2. Instale os pacotes necessários:
    ```
-   pip install telethon python-dotenv
+   pip install -r requirements.txt
    ```
 3. Crie um arquivo `.env` no mesmo diretório com suas credenciais da API do Telegram:
    ```
@@ -41,7 +41,7 @@ Um script Python para baixar facilmente todos os arquivos de mídia de chats, gr
 
 1. Execute o script:
    ```
-   python telegram_media_downloader.py
+   python app.py
    ```
 2. Na primeira execução, você será solicitado a autenticar com sua conta do Telegram
 3. Escolha como identificar o chat (nome de usuário, link, nome ou ID)
