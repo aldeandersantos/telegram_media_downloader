@@ -4,8 +4,11 @@ import os
 from dotenv import load_dotenv
 import datetime
 import asyncio
+import importlib.util
 
 load_dotenv()
+
+has_cryptg = importlib.util.find_spec('cryptg') is not None
 
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
@@ -16,11 +19,23 @@ MEDIA_DIR = 'media'
 if not os.path.exists(MEDIA_DIR):
     os.makedirs(MEDIA_DIR)
 
-client = TelegramClient(SESSION_NAME, api_id, api_hash)
+client = TelegramClient(
+    SESSION_NAME, 
+    api_id, 
+    api_hash,
+    connection_retries=10,
+    retry_delay=1,
+    auto_reconnect=True,
+    request_retries=5
+)
 
 async def download_media(message, download_dir):
     try:
-        path = await client.download_media(message, file=download_dir)
+        path = await client.download_media(
+            message,
+            file=download_dir,
+            progress_callback=None,
+        )
         if path:
             return path, None
         return None, "Arquivo não disponível"
@@ -137,19 +152,22 @@ async def main():
                 print("Valor inválido. Não será aplicado limite.")
         
         try:
-            max_concurrent = int(input("Quantidade de downloads simultâneos (recomendado: 5-10): "))
+            default_concurrent = 10 if has_cryptg else 5
+            max_concurrent = int(input(f"Quantidade de downloads simultâneos (recomendado: {default_concurrent}-{default_concurrent*2}): "))
             if max_concurrent < 1:
-                max_concurrent = 5
+                max_concurrent = default_concurrent
         except ValueError:
-            max_concurrent = 5
-            print("Valor inválido. Usando 5 downloads simultâneos por padrão.")
+            max_concurrent = default_concurrent
+            print(f"Valor inválido. Usando {default_concurrent} downloads simultâneos por padrão.")
             
         print("\nIniciando download... (Isto pode demorar dependendo do tamanho do chat)")
         
         count = 0
         total_messages = 0
-        pending_downloads = []
         media_messages = []
+        
+        start_time = datetime.datetime.now()
+        total_bytes_downloaded = 0
         
         print("Analisando mensagens...")
         async for message in client.iter_messages(chat, reverse=True, limit=limit):
@@ -163,23 +181,34 @@ async def main():
         print(f"\nAnálise completa: {total_messages} mensagens, {len(media_messages)} mídias para download.")
         
         total_media = len(media_messages)
-        for i in range(0, total_media, max_concurrent):
-            batch = media_messages[i:i + max_concurrent]
-            
-            tasks = [download_media(message, download_dir) for message in batch]
-            results = await asyncio.gather(*tasks)
-            
-            for path, error in results:
+        
+        semaphore = asyncio.Semaphore(max_concurrent)
+        count = 0
+        
+        async def download_with_semaphore(message, index):
+            nonlocal count
+            async with semaphore:
+                path, error = await download_media(message, download_dir)
                 if path:
                     count += 1
                     print(f"✅ Mídia {count}/{total_media} baixada: {os.path.basename(path)}")
                 else:
                     print(f"❌ Falha ao baixar mídia: {error}")
-            
-            print(f"Progresso: {min(i + max_concurrent, total_media)}/{total_media} ({int((min(i + max_concurrent, total_media)/total_media)*100)}%)")
+                
+                if count % max(1, min(5, max_concurrent//2)) == 0:
+                    print(f"Progresso: {count}/{total_media} ({int((count/total_media)*100)}%)")
         
-        print(f"\n✨ Download concluído!")
-        print(f"📊 Estatísticas:")
+        tasks = [download_with_semaphore(message, i) for i, message in enumerate(media_messages)]
+        await asyncio.gather(*tasks)
+        
+        end_time = datetime.datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        
+        print(f"\n✨ Download concluído em {duration:.1f} segundos!")
+        if duration > 0:
+            print(f"🚀 Velocidade média: {total_bytes_downloaded/duration/1024:.1f} KB/s")
+        
+        print(f"\n📊 Estatísticas:")
         print(f"   - Total de mensagens verificadas: {total_messages}")
         print(f"   - Total de mídias encontradas: {total_media}")
         print(f"   - Total de mídias baixadas com sucesso: {count}")
