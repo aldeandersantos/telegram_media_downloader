@@ -1,6 +1,15 @@
 # Telegram Media Downloader
 
-Um script Python para baixar facilmente todos os arquivos de mídia de chats, grupos e canais do Telegram.
+Telegram Media Downloader é um utilitário em Python que permite baixar automaticamente arquivos de mídia — como fotos, vídeos, áudios e documentos — de chats, grupos e canais do Telegram. O script realiza downloads simultâneos para otimizar a performance. É uma ferramenta útil para quem deseja realizar backups de mídias ou organizar conteúdos recebidos em grandes volumes, com autenticação segura via API do Telegram.
+
+# Índice
+- [🗂️ Recursos](#recursos)
+- [💡 Requisitos](#requisitos)
+- [⚙️ Instalação](#instalação)
+- [🗝 Obtendo Credenciais da API do Telegram](#obtendo-credenciais-da-api-do-telegram)
+- [🔎 Como Usar](#como-usar)
+- [📥 Opções de Download](#opções-de-download)
+- [🚨 Observações](#observações)
 
 ## Recursos
 
